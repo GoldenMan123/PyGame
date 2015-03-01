@@ -3,6 +3,7 @@
 
 import pygame
 import random
+import math
 
 SIZE = 640, 480
 
@@ -56,12 +57,18 @@ class Ball:
     def draw(self, surface):
         surface.blit(self.surface, self.rect)
 
+    def gravity(self, t):
+        self.speed = self.speed[0], self.speed[1] + 0.2 * t
+
     def action(self):
         '''Proceed some action'''
         if self.active:
+            self.gravity(0.5)
             self.pos = self.pos[0]+self.speed[0], self.pos[1]+self.speed[1]
+            self.gravity(0.5)
 
     def logic(self, surface):
+        gravity = 0.2
         x,y = self.pos
         dx, dy = self.speed
         if x < self.rect.width/2:
@@ -71,11 +78,17 @@ class Ball:
             x = surface.get_width() - self.rect.width/2
             dx = -dx
         if y < self.rect.height/2:
+            dh = self.rect.height / 2 - y
+            dy = -dy
+            dy = math.sqrt(2 * 0.2 * dh + dy ** 2)
             y = self.rect.height/2
-            dy = -dy
         elif y > surface.get_height() - self.rect.height/2:
-            y = surface.get_height() - self.rect.height/2
+            dh = y - surface.get_height() + self.rect.height / 2
             dy = -dy
+            de = -2 * 0.2 * dh + dy ** 2
+            if de > 0:
+                dy = -math.sqrt(de)
+            y = surface.get_height() - self.rect.height/2
         self.pos = x,y
         self.speed = dx,dy
         self.rect.center = intn(*self.pos)
@@ -149,7 +162,7 @@ Init(SIZE)
 Game = Universe(10)
 
 Run = GameWithDnD()
-for i in xrange(5):
+for i in xrange(2):
     x, y = random.randrange(screenrect.w), random.randrange(screenrect.h)
     dx, dy = 1+random.random()*5, 1+random.random()*5
     Run.objects.append(Ball("ball.gif",(x,y),(dx,dy)))
