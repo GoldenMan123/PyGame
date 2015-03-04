@@ -133,16 +133,46 @@ class GameWithObjects(GameMode):
     def __init__(self, objects=[]):
         GameMode.__init__(self)
         self.objects = objects
+        self.intersect_set = set()
 
     def locate(self, pos):
         return [obj for obj in self.objects if obj.rect.collidepoint(pos)]
+
+    def collide(self, obj1, obj2):
+        sfc1 = pygame.transform.rotozoom(obj1.surface,
+            obj1.angle, obj2.size)
+        sfc2 = pygame.transform.rotozoom(obj2.surface,
+            obj2.angle, obj2.size)
+        mask1 = pygame.mask.from_surface(sfc1)
+        mask2 = pygame.mask.from_surface(sfc2)
+        offset_x = int(obj1.pos[0] - obj2.pos[0])
+        offset_y = int(obj1.pos[1] - obj2.pos[1])
+        offset = -offset_x, -offset_y
+        return mask1.overlap(mask2, offset)
+
+    def process_intersect(self, obj1, obj2):
+        if (obj1, obj2) in self.intersect_set:
+            return
+        self.intersect_set.add((obj1, obj2))
+        speed1 = obj2.speed
+        speed2 = obj1.speed
+        k = obj2.size / obj1.size
+        obj1.speed = speed1[0] * k, speed1[1] * k
+        obj2.speed = speed2[0] / k, speed2[1] / k
 
     def Events(self, event):
         GameMode.Events(self, event)
         if event.type == Game.tickevent:
             for obj in self.objects:
                 obj.action()
-
+            for obj1 in self.objects:
+                for obj2 in self.objects:
+                    if obj1 == obj2:
+                        continue
+                    if self.collide(obj1, obj2):
+                        self.process_intersect(obj1, obj2)
+                    elif (obj1, obj2) in self.intersect_set:
+                        self.intersect_set.remove((obj1, obj2))
     def Logic(self, surface):
         GameMode.Logic(self, surface)
         for obj in self.objects:
